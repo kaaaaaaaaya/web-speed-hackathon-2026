@@ -9,10 +9,16 @@ interface ReturnValues<T> {
   fetchMore: () => void;
 }
 
+interface UseInfiniteFetchOptions {
+  enabled?: boolean;
+}
+
 export function useInfiniteFetch<T>(
   apiPath: string,
   fetcher: (apiPath: string) => Promise<T[]>,
+  options: UseInfiniteFetchOptions = {},
 ): ReturnValues<T> {
+  const { enabled = true } = options;
   const internalRef = useRef({ hasMore: true, isLoading: false, offset: 0 });
 
   const [result, setResult] = useState<Omit<ReturnValues<T>, "fetchMore">>({
@@ -22,6 +28,10 @@ export function useInfiniteFetch<T>(
   });
 
   const fetchMore = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
+
     if (apiPath === "") {
       setResult((cur) => ({
         ...cur,
@@ -75,9 +85,23 @@ export function useInfiniteFetch<T>(
         };
       },
     );
-  }, [apiPath, fetcher]);
+  }, [apiPath, enabled, fetcher]);
 
   useEffect(() => {
+    if (!enabled) {
+      setResult(() => ({
+        data: [],
+        error: null,
+        isLoading: false,
+      }));
+      internalRef.current = {
+        hasMore: true,
+        isLoading: false,
+        offset: 0,
+      };
+      return;
+    }
+
     setResult(() => ({
       data: [],
       error: null,
@@ -90,7 +114,7 @@ export function useInfiniteFetch<T>(
     };
 
     fetchMore();
-  }, [fetchMore]);
+  }, [enabled, fetchMore]);
 
   return {
     ...result,
