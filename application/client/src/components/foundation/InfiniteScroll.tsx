@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 interface Props {
   children: ReactNode;
@@ -9,6 +9,20 @@ interface Props {
 export const InfiniteScroll = ({ children, fetchMore, items }: Props) => {
   const latestItem = items[items.length - 1];
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [hasUserScrolled, setHasUserScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 0) {
+        setHasUserScrolled(true);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -19,7 +33,7 @@ export const InfiniteScroll = ({ children, fetchMore, items }: Props) => {
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting && latestItem !== undefined) {
+        if (entry?.isIntersecting && latestItem !== undefined && hasUserScrolled) {
           fetchMore();
         }
       },
@@ -30,7 +44,7 @@ export const InfiniteScroll = ({ children, fetchMore, items }: Props) => {
     return () => {
       observer.disconnect();
     };
-  }, [latestItem, fetchMore]);
+  }, [hasUserScrolled, latestItem, fetchMore]);
 
   return (
     <>

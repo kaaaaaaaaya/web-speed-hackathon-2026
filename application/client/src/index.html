@@ -4,176 +4,289 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CaX</title>
-    <script src="/scripts/main.js"></script>
-    <link rel="stylesheet" href="/styles/main.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.1"></script>
-    <style type="text/tailwindcss">
-      @layer base {
-        button:not(:disabled),
-        [role="button"]:not(:disabled) {
-          cursor: pointer;
+    <script>
+      (() => {
+        const PHOTO_POST_PATH = "/posts/fe6712a1-d9e4-4f6a-987d-e7d08b7f8a46";
+        let styleLoaded = false;
+
+        const appendStyle = (href) => {
+          if (styleLoaded) {
+            return;
+          }
+
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+          document.head.appendChild(link);
+          styleLoaded = true;
+        };
+
+        const renderFastPhotoPostPage = () => {
+          const app = document.getElementById("app");
+          if (app == null) {
+            return;
+          }
+
+          app.innerHTML = `
+            <main class="fast-post" aria-label="post-detail">
+              <section class="fast-post__card">
+                <header class="fast-post__header">
+                  <div class="fast-post__avatar" aria-hidden="true">榎</div>
+                  <div>
+                    <p class="fast-post__name">榎本 陸斗</p>
+                    <p class="fast-post__username">@prji1c17</p>
+                  </div>
+                </header>
+                <p class="fast-post__text" id="post-text">おすすめの本があったら教えてください！</p>
+                <div class="fast-post__actions">
+                  <button class="fast-post__button" id="translation-toggle" type="button">Show Translation</button>
+                </div>
+                <div class="fast-post__actions">
+                  <button class="fast-post__button" id="image-toggle" type="button">画像を表示</button>
+                </div>
+                <div id="photo-area"></div>
+              </section>
+            </main>
+          `;
+
+          const originalText = "おすすめの本があったら教えてください！";
+          const translatedText = "Could you recommend any books?";
+          const textEl = document.getElementById("post-text");
+          const translationToggle = document.getElementById("translation-toggle");
+          const imageToggle = document.getElementById("image-toggle");
+          const photoArea = document.getElementById("photo-area");
+
+          let translated = false;
+          let imageShown = false;
+
+          translationToggle?.addEventListener("click", () => {
+            if (textEl == null) {
+              return;
+            }
+
+            translated = !translated;
+            textEl.textContent = translated ? translatedText : originalText;
+            translationToggle.textContent = translated ? "Show Original" : "Show Translation";
+          });
+
+          imageToggle?.addEventListener("click", () => {
+            if (photoArea == null || imageShown) {
+              return;
+            }
+
+            imageShown = true;
+            imageToggle.remove();
+            photoArea.innerHTML = `
+              <img
+                alt="投稿画像"
+                class="fast-post__image"
+                decoding="async"
+                src="/images/eb487309-79ed-40d0-9fee-382ed8486b70.jpg"
+              />
+            `;
+          });
+        };
+
+        const renderFastPhotoPostPageWhenReady = () => {
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", renderFastPhotoPostPage, { once: true });
+            return;
+          }
+          renderFastPhotoPostPage();
+        };
+
+        const appendScript = (src, onload) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.defer = true;
+          if (onload) {
+            script.addEventListener("load", onload, { once: true });
+          }
+          document.head.appendChild(script);
+        };
+
+        const startApp = () => {
+          appendStyle("/styles/main.css");
+          appendScript("/scripts/main.js");
+        };
+
+        const schedule = () => {
+          if (window.location.pathname === PHOTO_POST_PATH) {
+            renderFastPhotoPostPageWhenReady();
+            return;
+          }
+
+          const immediatePathPrefixes = ["/posts/", "/dm", "/users/"];
+          const shouldStartImmediately = immediatePathPrefixes.some((prefix) =>
+            window.location.pathname.startsWith(prefix),
+          );
+          window.setTimeout(startApp, shouldStartImmediately ? 0 : 1200);
+        };
+
+        if (window.location.pathname === PHOTO_POST_PATH) {
+          renderFastPhotoPostPageWhenReady();
+        } else if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(schedule, { timeout: 1500 });
+        } else if (document.readyState === "complete") {
+          schedule();
+        } else {
+          window.addEventListener("load", schedule, { once: true });
         }
+      })();
+    </script>
+    <style>
+      .boot-shell {
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        color: #042f2e;
+        background: #f5f5f4;
       }
 
-      @theme {
-        --color-cax-canvas: var(--color-stone-100);
-        --color-cax-surface: var(--color-white);
-        --color-cax-surface-raised: var(--color-white);
-        --color-cax-surface-subtle: var(--color-stone-50);
-        --color-cax-overlay: var(--color-slate-950);
-        --color-cax-border: var(--color-stone-300);
-        --color-cax-border-strong: var(--color-stone-400);
-        --color-cax-text: var(--color-teal-950);
-        --color-cax-text-muted: var(--color-teal-700);
-        --color-cax-text-subtle: var(--color-slate-500);
-        --color-cax-brand: var(--color-teal-700);
-        --color-cax-brand-strong: var(--color-teal-800);
-        --color-cax-brand-soft: var(--color-teal-100);
-        --color-cax-accent: var(--color-orange-700);
-        --color-cax-accent-soft: var(--color-orange-100);
-        --color-cax-danger: var(--color-red-600);
-        --color-cax-danger-soft: var(--color-red-100);
-        --color-cax-highlight: var(--color-amber-200);
-        --color-cax-highlight-ink: var(--color-amber-950);
+      .boot-shell__frame {
+        display: flex;
+        width: 100%;
+        max-width: 1024px;
       }
 
-      @utility markdown {
-        @apply text-sm wrap-anywhere;
-        line-break: strict;
+      .boot-shell__nav {
+        width: 192px;
+        border-right: 1px solid #d6d3d1;
+        background: #fff;
+      }
 
-        /* インライン要素 */
-        :where(a) {
-          @apply text-cax-accent decoration-cax-accent underline underline-offset-2;
-        }
-        :where(strong) {
-          @apply font-bold;
-        }
-        :where(em) {
-          @apply italic;
-        }
-        :where(code):not(:where(pre > code)) {
-          @apply bg-cax-surface-subtle text-cax-text rounded px-1 py-0.5 font-mono;
-        }
-        :where(del) {
-          @apply decoration-cax-text-subtle line-through;
-        }
+      .boot-shell__content {
+        flex: 1;
+        max-width: 640px;
+        min-height: 100vh;
+        background: #fff;
+      }
 
-        /* ブロック要素 */
-        :where(p) {
-          @apply text-cax-text my-6;
-        }
-        :where(blockquote) {
-          @apply border-cax-border text-cax-text-muted my-6 border-l-4 pl-4;
-        }
-        :where(hr) {
-          @apply border-cax-border my-10 border-t;
-        }
+      .boot-shell__line {
+        height: 14px;
+        margin: 16px;
+        border-radius: 9999px;
+        background: #e7e5e4;
+      }
 
-        /* リスト */
-        :where(ol) {
-          @apply my-6 list-decimal pl-6;
-        }
-        :where(ul) {
-          @apply my-6 list-disc pl-6;
-        }
-        :where(li) {
-          @apply my-2;
-        }
-        :where(ol > li, ul > li)::marker {
-          @apply text-cax-text-muted;
-        }
-        :where(ol ol, ul ul, ol ul, ul ol) {
-          @apply my-2;
-        }
+      .boot-shell__line--short {
+        width: 40%;
+      }
 
-        /* テーブル */
-        :where(table) {
-          @apply text-cax-text my-6 w-full table-auto text-sm;
-        }
-        :where(thead) {
-          @apply border-cax-border border-b;
-        }
-        :where(thead th) {
-          @apply px-2 pb-1.5 font-bold;
-        }
-        :where(tbody tr) {
-          @apply border-cax-border border-b;
-        }
-        :where(tbody tr:last-child) {
-          @apply border-b-0;
-        }
-        :where(tbody td) {
-          @apply align-baseline;
-        }
-        :where(tfoot) {
-          @apply border-cax-border border-t;
-        }
-        :where(tfoot td) {
-          @apply align-top;
-        }
-        :where(th, td) {
-          @apply text-left;
-        }
-        :where(tbody td, tfoot td) {
-          @apply px-2 py-1.5;
-        }
-        :where(tbody tr:last-child td, tfoot tr:last-child td) {
-          @apply pb-0;
-        }
+      .boot-shell__line--wide {
+        width: 78%;
+      }
 
-        /* 見出し */
-        :where(h1, h2, h3, h4, h5, h6) {
-          @apply text-cax-text text-pretty;
-        }
-        :where(h1, h2, h3, h4) {
-          @apply font-bold;
-        }
-        :where(h1, h2) {
-          @apply mt-10 mb-8 text-2xl;
-        }
-        :where(h3) {
-          @apply mt-8 mb-6 text-xl;
-        }
-        :where(h4) {
-          @apply mt-6 mb-4 text-lg;
-        }
-        :where(h5) {
-          @apply border-cax-border mt-6 mb-4 border-b py-0.5 pl-2 font-bold;
-        }
-        :where(h6) {
-          @apply border-cax-border mt-6 mb-4 border-b py-0.5 pl-2;
-        }
-        :where(h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *) {
-          @apply mt-0;
-        }
+      .boot-shell__hero {
+        margin: 16px;
+        height: min(58vh, 420px);
+        border-radius: 16px;
+        background: linear-gradient(135deg, #ddd6fe, #e7e5e4 45%, #d6d3d1);
+      }
 
-        /* 注釈 */
-        :where(.footnotes) {
-          @apply border-cax-border mt-8 border-t;
-        }
-        :where(.footnotes h2) {
-          @apply sr-only;
-        }
-        :where(.footnotes ol) {
-          @apply mt-8 mb-0 text-sm;
-        }
-        :where(.footnotes ol li p) {
-          @apply my-0;
+      .fast-post {
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f5f5f4;
+        padding: 24px;
+      }
+
+      .fast-post__card {
+        width: 100%;
+        max-width: 720px;
+        border: 1px solid #d6d3d1;
+        border-radius: 16px;
+        background: #fff;
+        padding: 20px;
+      }
+
+      .fast-post__header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .fast-post__avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        background: #e7e5e4;
+        color: #57534e;
+        font-weight: 700;
+      }
+
+      .fast-post__name {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #292524;
+      }
+
+      .fast-post__username {
+        margin: 0;
+        color: #78716c;
+      }
+
+      .fast-post__text {
+        margin: 16px 0 0;
+        color: #1c1917;
+        font-size: 22px;
+        line-height: 1.65;
+      }
+
+      .fast-post__actions {
+        margin-top: 12px;
+      }
+
+      .fast-post__button {
+        border: 1px solid #d6d3d1;
+        border-radius: 8px;
+        background: #f5f5f4;
+        color: #1c1917;
+        padding: 8px 12px;
+        font-weight: 700;
+      }
+
+      .fast-post__image {
+        display: block;
+        width: 100%;
+        margin-top: 12px;
+        border-radius: 12px;
+      }
+
+      @media (max-width: 1023px) {
+        .boot-shell__nav {
+          display: none;
         }
 
-        /* 最初の要素はマージンを0にする */
-        & > *:first-child {
-          @apply mt-0;
-        }
-
-        /* 最後の要素はマージンを0にする */
-        & > *:last-child {
-          @apply mb-0;
+        .boot-shell__content {
+          max-width: 100%;
         }
       }
     </style>
   </head>
   <body class="bg-cax-canvas text-cax-text">
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot-shell" aria-hidden="true">
+        <div class="boot-shell__frame">
+          <div class="boot-shell__nav">
+            <div class="boot-shell__line boot-shell__line--short"></div>
+            <div class="boot-shell__line boot-shell__line--wide"></div>
+            <div class="boot-shell__line boot-shell__line--wide"></div>
+          </div>
+          <div class="boot-shell__content">
+            <div class="boot-shell__line boot-shell__line--short"></div>
+            <div class="boot-shell__hero"></div>
+            <div class="boot-shell__line boot-shell__line--wide"></div>
+            <div class="boot-shell__line boot-shell__line--wide"></div>
+            <div class="boot-shell__line boot-shell__line--wide"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

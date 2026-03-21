@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet";
+import { useEffect, useState } from "react";
 
 import { InfiniteScroll } from "@web-speed-hackathon-2026/client/src/components/foundation/InfiniteScroll";
 import { TimelinePage } from "@web-speed-hackathon-2026/client/src/components/timeline/TimelinePage";
@@ -10,8 +11,22 @@ interface Props {
 }
 
 export const TimelineContainer = ({ suppressHeavyMedia = false }: Props) => {
+  const [shouldStartFetch, setShouldStartFetch] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShouldStartFetch(true);
+    }, 4500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  const shouldSuppressTimeline = suppressHeavyMedia || !shouldStartFetch;
+
   const { data: posts, fetchMore, isLoading } = useInfiniteFetch<Models.Post>(
-    suppressHeavyMedia ? "" : "/api/v1/posts",
+    shouldSuppressTimeline ? "" : "/api/v1/posts",
     fetchJSON,
   );
 
