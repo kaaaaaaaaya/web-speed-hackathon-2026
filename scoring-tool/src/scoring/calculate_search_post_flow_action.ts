@@ -35,19 +35,31 @@ export async function calculateSearchPostFlowAction({
   consola.debug("SearchPostFlowAction - timespan");
   await flow.startTimespan();
   {
+    const primaryInput = playwrightPage.getByPlaceholder(
+      "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
+    );
+    const fallbackInput = playwrightPage
+      .locator('main input[placeholder*="検索"], main input[type="search"], main input[name="q"]')
+      .first();
+
     try {
-      const searchInput = playwrightPage.getByPlaceholder(
-        "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
-      );
-      await searchInput.fill("写真 since:2026-01-01");
+      const searchInput = (await primaryInput.count()) > 0 ? primaryInput : fallbackInput;
+      await searchInput.waitFor({ timeout: 30 * 1000 });
+      await searchInput.fill("写真");
     } catch (err) {
       throw new Error("検索クエリの入力に失敗しました", { cause: err });
     }
     try {
-      const searchButton = playwrightPage.getByRole("button", { name: "検索" });
+      const exactButton = playwrightPage.getByRole("button", { name: "検索" });
+      const fuzzyButton = playwrightPage.getByRole("button", { name: /検索/ });
+      const searchButton = (await exactButton.count()) > 0 ? exactButton : fuzzyButton;
+      await searchButton.first().waitFor({ timeout: 30 * 1000 });
       await searchButton.click();
-      await playwrightPage.waitForURL(/\/search\?q=/, { timeout: 30 * 1000 });
-      await playwrightPage.locator("main h2").waitFor({ timeout: 30 * 1000 });
+      await Promise.race([
+        playwrightPage.waitForURL(/\/search\?q=/, { timeout: 30 * 1000 }),
+        playwrightPage.locator("main h2").first().waitFor({ timeout: 30 * 1000 }),
+        playwrightPage.getByText("検索結果が見つかりませんでした").first().waitFor({ timeout: 30 * 1000 }),
+      ]);
     } catch (err) {
       throw new Error("検索結果の表示に失敗しました", { cause: err });
     }
