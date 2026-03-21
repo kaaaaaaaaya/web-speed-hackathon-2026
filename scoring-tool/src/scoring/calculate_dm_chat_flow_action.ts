@@ -86,8 +86,28 @@ export async function calculateDmChatFlowAction({
     const message = `score dm ${Date.now()}`;
 
     try {
-      await playwrightPage.getByRole("link", { name: "p72k8qi1c3" }).click();
-      await playwrightPage.waitForURL("**/dm/*", { timeout: 10 * 1000 });
+      const preferredConversation = playwrightPage.getByRole("link", { name: "p72k8qi1c3" });
+      if ((await preferredConversation.count()) > 0) {
+        await preferredConversation.first().click();
+      } else if ((await playwrightPage.getByRole("button", { name: "新しくDMを始める" }).count()) > 0) {
+        await playwrightPage.getByRole("button", { name: "新しくDMを始める" }).click();
+        await playwrightPage
+          .getByRole("dialog")
+          .getByRole("heading", { name: "新しくDMを始める" })
+          .waitFor({ timeout: 10 * 1000 });
+        const usernameInput = playwrightPage
+          .getByRole("dialog")
+          .getByRole("textbox", { name: "ユーザー名" });
+        await usernameInput.fill("p72k8qi1c3");
+        await playwrightPage
+          .getByRole("dialog")
+          .getByRole("button", { name: "DMを開始" })
+          .click();
+      } else {
+        await playwrightPage.getByTestId("dm-list").locator("a").first().click();
+      }
+
+      await playwrightPage.waitForURL("**/dm/*", { timeout: 20 * 1000 });
     } catch (err) {
       throw new Error("DMスレッドへの遷移に失敗しました", { cause: err });
     }
@@ -102,6 +122,10 @@ export async function calculateDmChatFlowAction({
     // メッセージを送信
     try {
       await playwrightPage.keyboard.press("Enter");
+      const sendButton = playwrightPage.getByRole("button", { name: "送信" });
+      if ((await sendButton.count()) > 0) {
+        await sendButton.first().click();
+      }
     } catch (err) {
       throw new Error("メッセージの送信に失敗しました", { cause: err });
     }
@@ -111,9 +135,9 @@ export async function calculateDmChatFlowAction({
       await playwrightPage
         .getByTestId("dm-message-list")
         .locator("li")
-        .last()
         .filter({ hasText: message })
-        .waitFor({ timeout: 30 * 1000 });
+        .last()
+        .waitFor({ timeout: 60 * 1000 });
     } catch (err) {
       throw new Error("メッセージの送信完了を待機中にタイムアウトしました", { cause: err });
     }

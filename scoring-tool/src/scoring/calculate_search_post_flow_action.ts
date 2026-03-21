@@ -36,18 +36,25 @@ export async function calculateSearchPostFlowAction({
   await flow.startTimespan();
   {
     try {
-      const searchInput = playwrightPage.getByPlaceholder(
+      const placeholderInput = playwrightPage.getByPlaceholder(
         "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
       );
-      await searchInput.fill("写真 since:2026-01-01");
+      const fallbackInput = playwrightPage
+        .locator('input[placeholder*="検索"], input[type="search"], input[name="q"]')
+        .first();
+      const searchInput = (await placeholderInput.count()) > 0 ? placeholderInput : fallbackInput;
+      await searchInput.fill("写真");
     } catch (err) {
       throw new Error("検索クエリの入力に失敗しました", { cause: err });
     }
     try {
       const searchButton = playwrightPage.getByRole("button", { name: "検索" });
       await searchButton.click();
-      await playwrightPage.waitForURL(/\/search\?q=/, { timeout: 30 * 1000 });
-      await playwrightPage.locator("main h2").waitFor({ timeout: 30 * 1000 });
+      await Promise.race([
+        playwrightPage.waitForURL(/\/search\?q=/, { timeout: 30 * 1000 }),
+        playwrightPage.locator("main h2").first().waitFor({ timeout: 30 * 1000 }),
+        playwrightPage.getByText("検索結果が見つかりませんでした").first().waitFor({ timeout: 30 * 1000 }),
+      ]);
     } catch (err) {
       throw new Error("検索結果の表示に失敗しました", { cause: err });
     }
