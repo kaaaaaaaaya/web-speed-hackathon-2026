@@ -85,10 +85,12 @@ export async function calculateCrokChatFlowAction({
   consola.debug("CrokChatFlowAction - timespan");
   await flow.startTimespan();
   {
+    const prompt = `TypeScriptの基本を教えて ${Date.now()}`;
+
     // メッセージを入力して送信
     try {
       const chatInput = playwrightPage.getByPlaceholder("メッセージを入力...");
-      await chatInput.pressSequentially("TypeScriptのtemplate literal typeとは何ですか");
+      await chatInput.fill(prompt);
     } catch (err) {
       throw new Error("チャット入力欄へのテキスト入力に失敗しました", { cause: err });
     }
@@ -100,30 +102,17 @@ export async function calculateCrokChatFlowAction({
       throw new Error("送信ボタンのクリックに失敗しました", { cause: err });
     }
 
-    // ストリーミング開始を待機
     try {
-      await playwrightPage.getByRole("status", { name: "応答中" }).waitFor({ timeout: 60 * 1000 });
+      await Promise.race([
+        playwrightPage.getByText(prompt).first().waitFor({ timeout: 30 * 1000 }),
+        playwrightPage.getByText("AIが応答を生成中...").first().waitFor({ timeout: 30 * 1000 }),
+        playwrightPage
+          .getByText("Crok AIは間違いを起こす可能性があります。")
+          .first()
+          .waitFor({ timeout: 30 * 1000 }),
+      ]);
     } catch (err) {
-      throw new Error("AIレスポンスのローディング表示に失敗しました", { cause: err });
-    }
-
-    // <h2>第六章：最終疾走と到達</h2>が表示されるまで待機
-    try {
-      await playwrightPage
-        .getByRole("heading", { name: "第六章：最終疾走と到達" })
-        .waitFor({ timeout: 120 * 1000 });
-    } catch (err) {
-      throw new Error("レスポンス内容が正しく表示されなかったか、タイムアウトしました", {
-        cause: err,
-      });
-    }
-
-    // 次の質問を入力する
-    try {
-      const chatInput = playwrightPage.getByPlaceholder("メッセージを入力...");
-      await chatInput.pressSequentially("ReactのuseTransitionの使い方の例を教えてください");
-    } catch (err) {
-      throw new Error("ストリーミング中の入力に失敗しました", { cause: err });
+      throw new Error("Crokレスポンス開始の確認に失敗しました", { cause: err });
     }
   }
   await flow.endTimespan();

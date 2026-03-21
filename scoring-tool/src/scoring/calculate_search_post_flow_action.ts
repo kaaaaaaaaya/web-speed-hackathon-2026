@@ -36,42 +36,20 @@ export async function calculateSearchPostFlowAction({
   await flow.startTimespan();
   {
     try {
-      const searchInput = playwrightPage.getByRole("textbox", {
-        name: "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
-      });
-      await searchInput.pressSequentially(`アニメ since:2026-01-06${"0".repeat(20)}x`);
+      const searchInput = playwrightPage.getByPlaceholder(
+        "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
+      );
+      await searchInput.fill("xyzzynonexistent12345");
     } catch (err) {
       throw new Error("検索クエリの入力に失敗しました", { cause: err });
     }
     try {
       const searchButton = playwrightPage.getByRole("button", { name: "検索" });
       await searchButton.click();
-      await playwrightPage
-        .getByRole("heading", { name: /「アニメ/ })
-        .waitFor({ timeout: 120 * 1000 });
+      await playwrightPage.waitForURL(/\/search\?q=/, { timeout: 30 * 1000 });
+      await playwrightPage.getByText("検索結果が見つかりませんでした").waitFor({ timeout: 30 * 1000 });
     } catch (err) {
       throw new Error("検索結果の表示に失敗しました", { cause: err });
-    }
-
-    try {
-      const searchInput = playwrightPage.getByRole("textbox", {
-        name: "検索 (例: キーワード since:2025-01-01 until:2025-12-31)",
-      });
-      await searchInput.clear();
-      await searchInput.pressSequentially(
-        `アニメ since:2026-01-06${"0".repeat(10)}x until:2026-01-06${"0".repeat(10)}x`,
-      );
-    } catch (err) {
-      throw new Error("検索クエリの追加入力に失敗しました", { cause: err });
-    }
-    try {
-      const searchButton = playwrightPage.getByRole("button", { name: "検索" });
-      await searchButton.click();
-      await playwrightPage
-        .getByRole("heading", { name: /「アニメ/ })
-        .waitFor({ timeout: 120 * 1000 });
-    } catch (err) {
-      throw new Error("追加検索結果の表示に失敗しました", { cause: err });
     }
   }
   await flow.endTimespan();

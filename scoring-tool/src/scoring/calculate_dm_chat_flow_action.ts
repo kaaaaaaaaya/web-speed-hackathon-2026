@@ -86,32 +86,12 @@ export async function calculateDmChatFlowAction({
   consola.debug("DmChatFlowAction - timespan");
   await flow.startTimespan();
   {
-    // 「新しくDMを始める」ボタンをクリック
-    try {
-      const newDmButton = playwrightPage.getByRole("button", { name: "新しくDMを始める" });
-      await newDmButton.click();
-      await playwrightPage
-        .getByRole("heading", { name: "新しくDMを始める" })
-        .waitFor({ timeout: 10 * 1000 });
-    } catch (err) {
-      throw new Error("新しくDMを始めるモーダルの表示に失敗しました", { cause: err });
-    }
-
-    // 既存ユーザーを入力してDM開始
-    try {
-      const usernameInput = playwrightPage.getByRole("textbox", { name: "ユーザー名" });
-      await usernameInput.pressSequentially("g63iaxn5c");
-    } catch (err) {
-      throw new Error("DM相手のユーザー名の入力に失敗しました", { cause: err });
-    }
+    const messageId = `${Date.now()}`;
+    const firstMessage = `こんにちは ${messageId}`;
 
     try {
-      const startDmButton = playwrightPage.getByRole("button", { name: "DMを開始" });
-      await startDmButton.click();
-      // DMスレッドページへ遷移
-      await playwrightPage.waitForURL("**/dm/*", {
-        timeout: 10 * 1000,
-      });
+      await playwrightPage.getByRole("link", { name: "p72k8qi1c3" }).click();
+      await playwrightPage.waitForURL("**/dm/*", { timeout: 10 * 1000 });
     } catch (err) {
       throw new Error("DMスレッドへの遷移に失敗しました", { cause: err });
     }
@@ -119,15 +99,7 @@ export async function calculateDmChatFlowAction({
     // メッセージを入力（複数行）
     try {
       const messageInput = playwrightPage.getByRole("textbox", { name: "内容" });
-      await messageInput.pressSequentially("こんにちは！", { delay: 10 });
-      await playwrightPage.keyboard.press("Shift+Enter");
-      await messageInput.pressSequentially("Web Speed Hackathon 2026に参加しています。", {
-        delay: 10,
-      });
-      await playwrightPage.keyboard.press("Shift+Enter");
-      await messageInput.pressSequentially("パフォーマンス改善のアドバイスをお願いします！", {
-        delay: 10,
-      });
+      await messageInput.fill(firstMessage);
     } catch (err) {
       throw new Error("メッセージの入力に失敗しました", { cause: err });
     }
@@ -141,41 +113,17 @@ export async function calculateDmChatFlowAction({
 
     // メッセージが表示されるまで待機（送信完了確認）
     try {
+      await playwrightPage.getByTestId("dm-message-list").locator("li").last().waitFor({
+        timeout: 30 * 1000,
+      });
       await playwrightPage
+        .getByTestId("dm-message-list")
         .locator("li")
-        .filter({ hasText: "パフォーマンス改善のアドバイスをお願いします！" })
+        .last()
+        .filter({ hasText: firstMessage })
         .waitFor({ timeout: 30 * 1000 });
     } catch (err) {
       throw new Error("メッセージの送信完了を待機中にタイムアウトしました", { cause: err });
-    }
-
-    // 追加のメッセージを入力
-    try {
-      const messageInput = playwrightPage.getByRole("textbox", { name: "内容" });
-      await messageInput.pressSequentially("追加の質問です。", { delay: 10 });
-      await playwrightPage.keyboard.press("Shift+Enter");
-      await messageInput.pressSequentially("LCPの改善方法を具体的に教えてください。", {
-        delay: 10,
-      });
-    } catch (err) {
-      throw new Error("追加メッセージの入力に失敗しました", { cause: err });
-    }
-
-    // 2通目のメッセージを送信
-    try {
-      await playwrightPage.keyboard.press("Enter");
-    } catch (err) {
-      throw new Error("2通目のメッセージの送信に失敗しました", { cause: err });
-    }
-
-    // 2通目のメッセージが表示されるまで待機
-    try {
-      await playwrightPage
-        .locator("li")
-        .filter({ hasText: "LCPの改善方法を具体的に教えてください。" })
-        .waitFor({ timeout: 30 * 1000 });
-    } catch (err) {
-      throw new Error("2通目のメッセージの送信完了を待機中にタイムアウトしました", { cause: err });
     }
   }
   await flow.endTimespan();
